@@ -1,0 +1,15 @@
+// Hand-authored from config.h.in for the ESP-IDF build.
+// ESP32-S3 is little-endian -> UCDR_LITTLE_ENDIANNESS (1).
+
+#ifndef _MICROCDR_CONFIG_H_
+#define _MICROCDR_CONFIG_H_
+
+#define MICROCDR_VERSION_MAJOR 2
+#define MICROCDR_VERSION_MINOR 0
+#define MICROCDR_VERSION_MICRO 2
+#define MICROCDR_VERSION_STR "2.0.2"
+
+// ucdrEndianness: UCDR_BIG_ENDIANNESS=0, UCDR_LITTLE_ENDIANNESS=1
+#define UCDR_MACHINE_ENDIANNESS 1
+
+#endif // _MICROCDR_CONFIG_H_
