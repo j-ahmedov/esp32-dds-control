@@ -54,7 +54,7 @@ smart_home.idl      (in each project) the shared type contract — single source
 ## Prerequisites (one-time)
 - **ESP-IDF v5.4** — activate with `source ~/esp/idf_env.sh`
 - **Native Micro-XRCE-DDS Agent** — built at `~/esp/Micro-XRCE-DDS-Agent/build/MicroXRCEAgent`
-  (Docker is only an unreliable fallback on macOS)
+  (run natively, not in Docker — Docker's UDP forwarding to the LAN is unreliable on macOS)
 - **Host tools libs** at `~/esp/eprosima-host` (for the dashboard/CLI publishers)
 - **RTI Connext 7.7.0** — only for the RTI demo
 - Full setup steps: see Appendix A of the PDF report.
@@ -99,7 +99,6 @@ rtiddsspy -domainId 0 -transport 1     # RTI discovers the device's topics
 | A part doesn't respond but telemetry shows the value | It's **wiring**, not code — re-seat directly to the pin. |
 | Servo won't move | Needs solid **5 V** + shared ground; won't run on 3.3 V. |
 | RTI: `shared memory` errors | Use `rtiddsspy -domainId 0 -transport 1`; the RTI apps already force UDPv4. |
-| `docker run` says name in use | The agent already exists — don't re-run it; just use `run.sh`. |
 
 ## Technology
 ESP32-S3 · ESP-IDF v5.4 · eProsima Micro XRCE-DDS (client v3.0.1 + Micro-CDR) ·
