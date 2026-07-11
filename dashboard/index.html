@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart-Home DDS Control</title>
+<style>
+  :root { --bg:#0f1826; --card:#18263b; --line:#28374f; --txt:#e8eef7; --mut:#93a4bd;
+          --accent:#3d9bff; --green:#39c07a; --amber:#e0a106; --red:#e2574c; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         background:var(--bg); color:var(--txt); }
+  header { padding:18px 22px; border-bottom:1px solid var(--line); display:flex;
+           align-items:center; justify-content:space-between; }
+  header h1 { font-size:18px; margin:0; font-weight:650; }
+  header .sub { color:var(--mut); font-size:12px; margin-top:2px; }
+  .status { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--mut); }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--red); }
+  .dot.on { background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 1.6s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .wrap { max-width:1000px; margin:0 auto; padding:22px; display:grid;
+          grid-template-columns:1fr 1fr; gap:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px 20px; }
+  .card h2 { margin:0 0 4px; font-size:15px; }
+  .card .hint { color:var(--mut); font-size:12px; margin:0 0 14px; }
+  .val { float:right; font-variant-numeric:tabular-nums; font-weight:700; color:var(--accent); }
+  input[type=range] { width:100%; -webkit-appearance:none; height:8px; border-radius:5px;
+        background:var(--line); outline:none; margin:6px 0 14px; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px;
+        border-radius:50%; background:var(--accent); cursor:pointer; border:3px solid #0f1826; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; }
+  button { flex:1; min-width:64px; padding:9px 10px; border:1px solid var(--line); background:#22334d;
+        color:var(--txt); border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  button:active { transform:translateY(1px); }
+  button.off { color:#f1b0ab; } button.full { color:#a9e6c6; }
+  /* telemetry */
+  .telem { grid-column:1 / -1; }
+  .telem .grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:6px; }
+  .metric { background:#12203399; border:1px solid var(--line); border-radius:12px; padding:14px 16px; text-align:center; }
+  .metric .lbl { color:var(--mut); font-size:12px; }
+  .metric .num { font-size:34px; font-weight:750; margin:4px 0; font-variant-numeric:tabular-nums; }
+  .metric .bar { height:6px; border-radius:4px; background:var(--line); overflow:hidden; }
+  .metric .fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--green)); width:0%; transition:width .3s; }
+  .log { font-family:"SF Mono",Menlo,Consolas,monospace; font-size:12px; height:190px; overflow-y:auto;
+         background:#0c1420; border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-top:6px; }
+  .log .row { padding:1px 0; white-space:nowrap; }
+  .log .ts { color:#5b6b82; margin-right:8px; }
+  .log .send { color:#7fc0ff; } .log .recv { color:#7fe0a8; }
+  .log .empty { color:var(--mut); }
+  .foot { grid-column:1/-1; color:var(--mut); font-size:11.5px; text-align:center; }
+  @media (max-width:720px){ .wrap{grid-template-columns:1fr} .telem .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Smart-Home DDS Control</h1>
+    <div class="sub">ESP32-S3 &middot; commands over DDS &middot; live telemetry</div>
+  </div>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">connecting…</span></div>
+</header>
+
+<div class="wrap">
+  <!-- LED1 -->
+  <div class="card">
+    <h2>💡 LED 1 <span class="val"><span id="v_led1">0</span></span></h2>
+    <p class="hint">GPIO 11 · brightness 0–255</p>
+    <input type="range" id="s_led1" min="0" max="255" value="0">
+    <div class="btns">
+      <button class="off" onclick="setLed(1,0)">Off</button>
+      <button onclick="setLed(1,128)">50%</button>
+      <button class="full" onclick="setLed(1,255)">Full</button>
+    </div>
+  </div>
+
+  <!-- LED2 -->
+  <div class="card">
+    <h2>💡 LED 2 <span class="val"><span id="v_led2">0</span></span></h2>
+    <p class="hint">GPIO 12 · brightness 0–255</p>
+    <input type="range" id="s_led2" min="0" max="255" value="0">
+    <div class="btns">
+      <button class="off" onclick="setLed(2,0)">Off</button>
+      <button onclick="setLed(2,128)">50%</button>
+      <button class="full" onclick="setLed(2,255)">Full</button>
+    </div>
+  </div>
+
+  <!-- Servo -->
+  <div class="card" style="grid-column:1/-1">
+    <h2>🎚️ Servo <span class="val"><span id="v_servo">90</span>°</span></h2>
+    <p class="hint">GPIO 9 · angle 0–180°</p>
+    <input type="range" id="s_servo" min="0" max="180" value="90">
+    <div class="btns">
+      <button onclick="setServo(0)">0°</button>
+      <button onclick="setServo(45)">45°</button>
+      <button onclick="setServo(90)">90°</button>
+      <button onclick="setServo(135)">135°</button>
+      <button onclick="setServo(180)">180°</button>
+    </div>
+  </div>
+
+  <!-- Telemetry -->
+  <div class="card telem">
+    <h2>📡 Device State <span class="hint" style="float:right;font-weight:400">reported by the ESP32 (device_state)</span></h2>
+    <div class="grid">
+      <div class="metric"><div class="lbl">LED 1</div><div class="num" id="t_led1">–</div>
+        <div class="bar"><div class="fill" id="f_led1"></div></div></div>
+      <div class="metric"><div class="lbl">LED 2</div><div class="num" id="t_led2">–</div>
+        <div class="bar"><div class="fill" id="f_led2"></div></div></div>
+      <div class="metric"><div class="lbl">Servo</div><div class="num" id="t_servo">–</div>
+        <div class="bar"><div class="fill" id="f_servo"></div></div></div>
+    </div>
+  </div>
+
+  <!-- Activity log -->
+  <div class="card telem">
+    <h2>📜 Activity Log <span class="hint" style="float:right;font-weight:400">commands sent &amp; state received</span></h2>
+    <div id="log" class="log"></div>
+  </div>
+
+  <div class="foot">Move a control → command travels over DDS to the device → the device reports its new state back here.</div>
+</div>
+
+<script>
+  // ---- send commands (on release, to avoid flooding) ----
+  const post = (url) => fetch(url, {method:"POST"}).catch(()=>{});
+  function setLed(id, v){
+    document.getElementById("s_led"+id).value = v;
+    document.getElementById("v_led"+id).textContent = v;
+    post(`/led?id=${id}&v=${v}`);
+  }
+  function setServo(a){
+    document.getElementById("s_servo").value = a;
+    document.getElementById("v_servo").textContent = a;
+    post(`/servo?angle=${a}`);
+  }
+  for (const id of [1,2]) {
+    const s = document.getElementById("s_led"+id);
+    s.addEventListener("input", () => document.getElementById("v_led"+id).textContent = s.value);
+    s.addEventListener("change", () => setLed(id, parseInt(s.value)));
+  }
+  const sv = document.getElementById("s_servo");
+  sv.addEventListener("input", () => document.getElementById("v_servo").textContent = sv.value);
+  sv.addEventListener("change", () => setServo(parseInt(sv.value)));
+
+  // ---- poll live device state ----
+  async function poll(){
+    try {
+      const r = await fetch("/state"); const d = await r.json();
+      const dot = document.getElementById("dot"), st = document.getElementById("statusText");
+      if (d.connected){ dot.classList.add("on"); st.textContent = "device online"; }
+      else { dot.classList.remove("on"); st.textContent = "device offline — start agent + press RST"; }
+      document.getElementById("t_led1").textContent  = d.led1;
+      document.getElementById("t_led2").textContent  = d.led2;
+      document.getElementById("t_servo").textContent = d.servo + "°";
+      document.getElementById("f_led1").style.width  = (d.led1/255*100)+"%";
+      document.getElementById("f_led2").style.width  = (d.led2/255*100)+"%";
+      document.getElementById("f_servo").style.width = (d.servo/180*100)+"%";
+    } catch(e){
+      document.getElementById("statusText").textContent = "dashboard server not reachable";
+    }
+  }
+  setInterval(poll, 1000); poll();
+
+  // ---- activity log ----
+  async function pollLog(){
+    try {
+      const r = await fetch("/log"); const rows = await r.json();
+      const el = document.getElementById("log");
+      if (!rows.length){ el.innerHTML = '<div class="empty">no activity yet — move a control</div>'; return; }
+      el.innerHTML = rows.slice().reverse().map(e => {
+        const arrow = e.dir === "send" ? "→" : "←";
+        return `<div class="row"><span class="ts">${e.t}</span><span class="${e.dir}">${arrow} ${e.text}</span></div>`;
+      }).join("");
+    } catch(e){}
+  }
+  setInterval(pollLog, 1000); pollLog();
+</script>
+</body>
+</html>

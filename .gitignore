@@ -1,0 +1,29 @@
+# ---- ESP-IDF firmware build outputs (smart_home_dds) ----
+smart_home_dds/build/
+smart_home_dds/sdkconfig.old
+smart_home_dds/.cache/
+smart_home_dds/managed_components/
+
+# ---- Compiled host tools (rebuild with host_tools/build.sh) ----
+smart_home_dds/host_tools/led_publisher
+smart_home_dds/host_tools/servo_publisher
+smart_home_dds/host_tools/state_subscriber
+
+# ---- RTI app build outputs (rebuild with rti_app/build.sh) ----
+rti_app/objs/
+rti_app/*.o
+rti_app/rti_publisher
+rti_app/rti_subscriber
+
+# ---- Stray PlatformIO project files (vestigial Arduino baseline; the IDE may
+#      regenerate these, but they're unused — the real projects are IDF + RTI) ----
+platformio.ini
+.pio/
+
+# ---- Report source (only the rendered PDF is committed) ----
+docs/report.html
+
+# ---- Editor / OS ----
+.vscode/
+.DS_Store
+*.swp

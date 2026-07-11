@@ -1,0 +1,8 @@
+# Applied on first `idf.py build`. Safe defaults for this project.
+
+# Bigger main task stack — XRCE session + XML entity creation is stack-hungry.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# The DevKitC-1 here is connected ONLY via the native USB port (USB-Serial/JTAG),
+# so route the console there instead of UART0 (whose pins go nowhere over USB).
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y

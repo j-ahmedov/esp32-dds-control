@@ -1,0 +1,4 @@
+## Managed component dependencies for main.
+dependencies:
+  idf: ">=5.2"
+  espressif/led_strip: "^2.5.5"   # onboard WS2812 RGB LED (diagnostic test)

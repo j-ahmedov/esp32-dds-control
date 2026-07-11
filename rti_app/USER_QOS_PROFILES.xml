@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Description
+Example XML QoS Profile for smart_home
+
+
+(c) Copyright, Real-Time Innovations, 2012.  All rights reserved.
+RTI grants Licensee a license to use, modify, compile, and create derivative
+works of the software solely for use with RTI Connext DDS. Licensee may
+redistribute copies of the software provided that all such copies are
+subject to this license. The software is provided "as is", with no warranty
+of any type, including any warranty for fitness for any purpose. RTI is
+under no obligation to maintain or support the software. RTI shall not be
+liable for any incidental or consequential damages arising out of the use
+or inability to use the software.
+
+
+The QoS configuration of the DDS entities in the generated example is loaded
+from this file.
+
+
+This file is used only when it is in the current working directory, the
+environment variable NDDS_QOS_PROFILES is defined and points to this file, or
+if the filename is specified in code.
+
+
+QoS profiles are a tool for pre-specifying behavior of DDS entities (e.g.
+DomainParticipants, DataReaders, and DataWriters).  For Domain Participants, this
+means primarily configuring platform resources (e.g. UDP buffers sizes). For
+DataReaders and DataWriters, it is aligning their behavior with the required
+design patterns and ensuring the QoS for DataWriters and DataReaders are
+compatible at runtime.
+
+
+The profiles in this file use inheritance from built-in QoS Profiles and
+composition from "QoS Snippets", which are provided in this product, to create
+Four example profiles.  One for a DomainParticipant, and three additional profiles
+which specify DataReader and DataWriter behavior for common communication design
+Patterns. 
+
+
+The profiles will require optimization for networks that are highly variable in
+throughput, latency, and/or sample loss, or have other unique characteristics.
+Applications with special resource, latency or throughput requirements will also 
+require optimized profiles.
+
+
+A collection of built-in profiles can be found in the
+BuiltinProfiles.documentationONLY.xml file located in the
+$NDDSHOME/resource/xml/ directory.
+
+
+Any of these "base" QoS configurations may be employed by referring to them by
+the name shown in the BuiltinProfiles.documentationONLY.xml file.
+
+
+There is also a library that contains a collection of
+QoS Snippets that set some specific features or configurations. They are 
+also located in the BuiltinProfiles.documentationONLY.xml file.
+https://community.rti.com/best-practices/qos-profile-inheritance-and-composition-guidance
+
+
+The file BuiltinProfiles.documentationONLY.xml is not intended to 
+be changed by users. To modify any of the values in a built-in profile, 
+the example in this file which inherits from a built-in profile should be
+used, with changes applied as needed.
+
+
+The "Configuring QoS with XML" chapter in the RTI Connext DDS Core Libraries User's Manual 
+has more information about managing QoS using XML QoS Profiles.
+-->
+
+<dds xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:noNamespaceSchemaLocation="file:////Applications/rti_connext_dds-7.7.0/resource/schema/rti_dds_qos_profiles.xsd">
+    <!-- A QoS library is a named set of QoS profiles.  This QoS Library contains
+         the QoS profiles which may be used in the generated example
+    -->
+    <qos_library name="smart_home_Library">
+
+        <!-- A QoS profile groups a set of related QoS for one or more DDS Entities -->
+
+        <!-- The following design-pattern oriented profiles are intended only for DataReader and DataWriter DDS Entities -->
+
+        <qos_profile name="Aperiodic_Reliable_Profile" base_name="BuiltinQosLib::Generic.Common">
+            <!-- Aperiodic Reliable behavior is suitable for Command, Response, Event or Alarm use-cases that require reliable data delivery. Reliability is the protocol by which samples that are lost for any reason are retransmitted to reliable DataReaders. In this profile, samples are not retained for late joining DataReaders. Reliability begins when a DataWriter matches a DataReader at discovery.
+An average DataWriter send frequency of > 500 ms is appropriate for this profile.
+            -->
+            <base_name>
+                <!-- Makes DataReader and DataWriter reliable (BEST_EFFORT DataReaders allowed).
+                     DataWriter will block up to 5 seconds if cache becomes full of unacknowledged
+                     samples, after which a write() call will fail if cache is still full -->
+                <element>BuiltinQosSnippetLib::QosPolicy.Reliability.Reliable</element>
+                <!-- DataWriters will use all available cache for reliability retransmission,
+                     DataReaders use all available cache to save samples until removed -->
+                <element>BuiltinQosSnippetLib::BuiltinQosSnippetLib::QosPolicy.History.KeepAll</element>
+                <!-- Optimize reliability timing for a stable, "normal" network,
+                     allowing DataWriter cache to grow from default of 32 samples to 40,
+                     DataReader cache to grow from 32 samples to 256. Datawriter issues heartbeats for
+                     acknowledgements every 200 ms while there are unacknowledged samples
+                     and will issue up to 500 periodic retries before reliability fails -->
+                <element>BuiltinQosSnippetLib::Optimization.ReliabilityProtocol.Common</element>
+            </base_name>
+
+
+            <!-- Name Datawriters and Datareaders by use-case -->
+            <datawriter_qos>
+                <publication_name>
+                    <name>smart_home_AR_DataWriter</name>
+                </publication_name>
+            </datawriter_qos>
+            <datareader_qos>
+                <subscription_name>
+                    <name>smart_home_AR_DataReader</name>
+                </subscription_name>
+            </datareader_qos>
+            <domain_participant_qos>
+                <!--
+                The participant name, if it is set, will be displayed in the
+                RTI tools, making it easier for you to tell one
+                application from another when you're debugging.
+                -->
+                <participant_name>
+                    <name>smart_home_AR_Participant</name>
+                    <role_name>AR_smart_home_AR_ParticipantRole</role_name>
+                </participant_name>
+            </domain_participant_qos>
+        </qos_profile>
+
+
+        <qos_profile name="Periodic_Best_Effort_Profile" base_name="BuiltinQosLib::Generic.Common">
+            <!-- Periodic BEST_EFFORT behavior is suitable for samples that update frequently enough that recovery
+                 of lost or out of order samples is not required. -->
+            <!-- Datawriters will not allow Reliable DataReaders. DataWriter only needs history of 1 since
+                 there are no retransmissions with BEST_EFFORT -->
+            <base_name>
+                <element>BuiltinQosSnippetLib::QosPolicy.Reliability.BestEffort</element>
+                <element>BuiltinQosSnippetLib::QosPolicy.History.KeepLast_1</element>
+            </base_name>
+
+
+            <!-- Name Datawriters and Datareaders by use-case -->
+            <datawriter_qos>
+                <publication_name>
+                    <name>smart_home_PBE_DataWriter</name>
+                </publication_name>
+            </datawriter_qos>
+            <datareader_qos>
+                <subscription_name>
+                    <name>smart_home_PBE_DataReader</name>
+                </subscription_name>
+                <!-- Increase DataReader cache to 100 samples per instance for incoming data to prevent overwriting -->
+                <history>
+                    <kind>KEEP_LAST_HISTORY_QOS</kind>
+                    <depth>100</depth>
+                </history>
+            </datareader_qos>
+            <domain_participant_qos>
+                <!--
+                The participant name, if it is set, will be displayed in the
+                RTI tools, making it easier for you to tell one
+                application from another when you're debugging.
+                -->
+                <participant_name>
+                    <name>smart_home_PBE_Participant</name>
+                    <role_name>smart_home_PBE_ParticipantRole</role_name>
+                </participant_name>
+            </domain_participant_qos>
+        </qos_profile>
+
+
+        <qos_profile name="Last_Value_Profile" base_name="Aperiodic_Reliable_Profile">
+            <!-- Last Value behavior is suitable for state data updates or resolving race conditions at discovery.  
+               This profile extends the Aperiodic_Reliable_Profile to provide the last update of each instance to late joining DataReaders when it is discovered,
+               without having to query the DataWriter   -->
+
+
+            <!-- DataWriter retains samples (per instance) for late joining DataReaders,
+                 DataReaders request last values upon discovery of DataWriters -->
+            <base_name>
+                <element>BuiltinQosSnippetLib::QosPolicy.Durability.TransientLocal</element>
+            </base_name>
+
+
+            <!-- Name Datawriters and Datareaders by use-case -->
+            <datawriter_qos>
+                <publication_name>
+                    <name>smart_home_LV_DataWriter</name>
+                </publication_name>
+                <!-- Have DataWriters keep only the most recently updated sample for delivery
+                     to late joining DataReaders, still use all available cache for reliability -->
+                <durability>
+                    <writer_depth>1</writer_depth>
+                </durability>
+            </datawriter_qos>
+
+
+            <datareader_qos>
+                <subscription_name>
+                    <name>smart_home_LV_DataReader</name>
+                </subscription_name>
+                <!-- Keep up to 256 samples per instance for incoming samples before overwriting the oldest -->
+                <history>
+                    <kind>KEEP_LAST_HISTORY_QOS</kind>
+                    <depth>256</depth>
+                </history>
+            </datareader_qos>
+        </qos_profile>
+       
+        <!-- DDS DomainParticipant QoS specifies discovery behavior and platform resource
+             values. These settings are appropriate for Windows or Linux server platforms and
+             are intended only for DDS DomainParticipant entities -->
+        <qos_profile name="Participant_Profile" base_name="BuiltinQosLib::Generic.Common">
+            <domain_participant_qos>
+                <!-- To have a unique name for each DomainParticipant, the name may be set in code for the DomainParticipant QoS, or in an environment variable referenced in the name tag.  --> 
+                <participant_name>
+                    <name>smart_home_LV_Participant</name>
+                </participant_name>
+                <transport_builtin>
+                    <udpv4>
+                        <!-- For high throughput implementations or cases where there are
+                             many DDS Entities to be discovered, larger UDP buffer sizes
+                             are essential for discovery, latency, and/or throughput performance,
+                             especially for non-RTOS operating systems like Linux or Windows.
+                             UDP receive socket buffers are especially important. Linux, for
+                             example, has small default values and should be configured to support buffers equal to or greater than these QoS values. Reference                           https://community.rti.com/howto/improve-rti-connext-dds-network-performance-linux for additional              details.  Windows does not usually require special configuration.
+                        <send_socket_buffer_size>10485760</send_socket_buffer_size>
+                        <recv_socket_buffer_size>2097152</recv_socket_buffer_size> -->
+                        <!-- Connext will try to use all available networks on a given host.  
+                             An allow list (white list) helps Connext use only the specified
+                             interface(s) and prevents duplicate sending of data. For more information:
+                             https://community.rti.com/kb/how-do-i-restrict-and-prioritize-interfaces-rti-connext-use
+                        <allow_interfaces_list>  
+                            <element>192.168.0.*</element>
+                        </allow_interfaces_list> 
+                        -->
+                    </udpv4>
+                </transport_builtin>
+            </domain_participant_qos>
+        </qos_profile>
+
+
+      <!--  This profile is provided for reference and can be uncommented
+      for debug purposes. Should additional logging information be required
+      or requested by RTI Support the values should be changed from the
+      defaults specified here 
+
+
+        <qos_profile name="Domain_Participant_Factory_Qos">
+            <participant_factory_qos is_default_participant_factory_qos="true">
+                <logging>
+            <category>ALL</category>
+            <output_file/>
+            <print_format>DEFAULT</print_format>
+            <verbosity>ERROR</verbosity>
+        </logging>
+           </participant_factory_qos>
+        </qos_profile>
+-->
+
+
+    </qos_library>
+</dds>
+
+
+

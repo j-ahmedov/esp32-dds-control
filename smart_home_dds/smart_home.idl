@@ -1,0 +1,36 @@
+// smart_home.idl
+// SINGLE SOURCE OF TRUTH for the DDS type contract.
+//
+//   ESP32-S3 side : microxrceddsgen smart_home.idl   -> smart_home.h / smart_home.c
+//   RTI side      : rtiddsgen -language C++11 smart_home.idl
+//
+// Because both sides are generated from THIS exact file, their CDR
+// serialization is layout-compatible and they interoperate over RTPS.
+// Do not let the two copies drift.
+
+module smart_home {
+
+    // Command sent TO the device to control a light.
+    // id = 1 -> LED1, id = 2 -> LED2 ; brightness 0 (off) .. 255 (full)
+    struct LedCommand {
+        unsigned short id;          // octet works too; short avoids @key/alignment surprises
+        unsigned short brightness;  // 0..255
+    };
+
+    // Command sent TO the device to position the servo.
+    struct ServoCommand {
+        unsigned short angle;       // 0..180 degrees
+    };
+
+    // Telemetry the device publishes BACK to the domain.
+    struct DeviceState {
+        unsigned short led1;        // last applied brightness 0..255
+        unsigned short led2;
+        unsigned short servo_angle; // last applied angle 0..180
+    };
+};
+
+// Topic name <-> type mapping used everywhere (firmware, agent, RTI):
+//   "led_cmd"      : smart_home::LedCommand    (device subscribes)
+//   "servo_cmd"    : smart_home::ServoCommand  (device subscribes)
+//   "device_state" : smart_home::DeviceState   (device publishes)
